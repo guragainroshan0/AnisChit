@@ -1,3 +1,17 @@
 <resources>
     <string name="app_name">Anischit</string>
+    <string name="not_safe">Not Safe</string>
+    <string name="safe">Safe</string>
+    <string name="add">Add Marker</string>
+    <string name="dialog_top">What can I find Here</string>
+    <string name="dialog_sanitation">Sanitaion</string>
+    <string name="dialog_donation">Donation</string>
+    <string name="dialog_bloodbank">Blood Bank</string>
+    <array name="helps">
+        <item>Sanitation</item>
+        <item>Blood Bank</item>
+        <item>Food</item>
+        <item>Material</item>
+        <item>Shelter</item>
+    </array>
 </resources>

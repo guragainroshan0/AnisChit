@@ -2,57 +2,56 @@ package com.roguragain.anischit;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.os.AsyncTask;
 import android.preference.PreferenceManager;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.telephony.AccessNetworkConstants;
 import android.util.Log;
+import android.view.View;
+import android.widget.ImageView;
+import android.widget.Toast;
 
+import org.osmdroid.api.IGeoPoint;
 import org.osmdroid.api.IMapController;
-import org.osmdroid.bonuspack.routing.MapQuestRoadManager;
-import org.osmdroid.bonuspack.routing.OSRMRoadManager;
-import org.osmdroid.bonuspack.routing.Road;
-import org.osmdroid.bonuspack.routing.RoadManager;
-import org.osmdroid.bonuspack.routing.RoadNode;
+import org.osmdroid.bonuspack.overlays.GroundOverlay;
 import org.osmdroid.config.Configuration;
+import org.osmdroid.events.MapEventsReceiver;
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
 import org.osmdroid.util.GeoPoint;
+import org.osmdroid.views.MapController;
 import org.osmdroid.views.MapView;
+import org.osmdroid.views.overlay.MapEventsOverlay;
 import org.osmdroid.views.overlay.Marker;
-import org.osmdroid.views.overlay.Polyline;
+import org.osmdroid.views.overlay.infowindow.InfoWindow;
 
 import java.util.ArrayList;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements MapEventsReceiver {
 
     MapView map;
+    ImageView getLocation;
+    String[] listItems;
+    boolean[] checkedItems;
+    ArrayList<Integer> mUserItems = new ArrayList<>();
 
     @SuppressLint("ServiceCast")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        final ArrayList<Marker> items = new ArrayList<>(10);
 
-        LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            return;
-        }
-        //locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, (LocationListener) locationListener);
-
+        final Drawable logo = getResources().getDrawable(R.drawable.ic_menu_mylocation);
 
         //handle permissions first, before map is created. not depicted here
 
@@ -68,85 +67,105 @@ public class MainActivity extends AppCompatActivity {
         //inflate and create the map
         setContentView(R.layout.activity_main);
 
+
+        getLocation = findViewById(R.id.myLocation);
+
         map = (MapView) findViewById(R.id.map);
         map.setTileSource(TileSourceFactory.MAPNIK);
         map.setBuiltInZoomControls(true);
         map.setMultiTouchControls(true);
-
-
-
-
-        IMapController mapController = map.getController();
+        final IMapController mapController = map.getController();
         mapController.setZoom(15.5);
-        //mapController.setZoom(3);
-        //GeoPoint startPoint = new GeoPoint(28.3949,84.1240);
-//        Log.i("DATA",geoPoint.toString());
-        GeoPoint startPoint = new GeoPoint(27.6756,85.3459);
-        mapController.setCenter(startPoint);
+
+        MapEventsOverlay mapEventsOverlay = new MapEventsOverlay(this,this);
+        map.getOverlays().add(0,mapEventsOverlay);
 
 
-        /*
-        *
-        *
-        *
-        *
-        * THIS CODE ADDS CUSTOM MARKER
-         */
-        Marker startMarker = new Marker(map);
-        startMarker.setPosition(startPoint);
-        startMarker.setAnchor(Marker.ANCHOR_CENTER,Marker.ANCHOR_BOTTOM);
-        map.getOverlays().add(startMarker);
-        map.invalidate();
-        //add the custom marker image
-        startMarker.setIcon(getResources().getDrawable(R.drawable.ic_menu_compass));
-        //marker on clicked shows the title
-        startMarker.setTitle("HELP NEEDED");
+        Marker marker = new Marker(map);
+        GeoPoint geoPoint = new GeoPoint(27.7172,85.3240);
+        marker.setPosition(geoPoint);
+        marker.setAnchor(Marker.ANCHOR_CENTER,Marker.ANCHOR_BOTTOM);
+        marker.setImage(logo);
+        map.getOverlays().add(marker);
+        mapController.setCenter(geoPoint);
 
 
 
-        final ArrayList<GeoPoint> wayPoints = new ArrayList<GeoPoint>();
-        wayPoints.add(startPoint);
-        GeoPoint endPoint = new GeoPoint(27.6915,85.3420);
-        wayPoints.add(endPoint);
-        final RoadManager roadManager = new MapQuestRoadManager("heU3VYjuj6nAWTNhrhTETQh23qB4QPzu");
-        roadManager.addRequestOption("routeType=bicycle");
 
-        Thread thread = new Thread(new Runnable() {
+        final LocationListener locationListener = new LocationListener() {
+            @Override
+            public void onLocationChanged(Location location) {
+                if (items.size() > 0) {
+                    map.getOverlays().remove(items.get(0));
+                }
+                Marker marker = new Marker(map);
+       /*
+       *
+       * Location of victim
+       * Add button pressed listener
+       * Add send data to server
+       *
+       * */
+                //Send location to server
+                // Location of the victim
+                GeoPoint geoPoint = new GeoPoint(location.getLatitude(), location.getLongitude());
+                marker.setImage(logo);
+                items.add(0, marker);
+                marker.setPosition(geoPoint);
+                mapController.setCenter(geoPoint);
+                mapController.setZoom(16.5);
+                mapController.animateTo(geoPoint);
+                mapController.stopAnimation(false);
+                map.getOverlays().add(marker);
+                map.invalidate();
+
+
+            }
 
             @Override
-            public void run() {
-                try  {
-                  Road  road = roadManager.getRoad(wayPoints);
-                  Polyline roadOverlay = (Polyline) RoadManager.buildRoadOverlay(road);
-                    Drawable nodeIcon = getResources().getDrawable(R.drawable.marker_default);
+            public void onStatusChanged(String provider, int status, Bundle extras) {
 
-                    for(int i=0;i<road.mNodes.size();i++){
-                        RoadNode node = road.mNodes.get(i);
-                        Marker nodeMarker = new Marker(map);
-                        nodeMarker.setPosition(node.mLocation);
-                        nodeMarker.setIcon(nodeIcon);
-                        nodeMarker.setTitle("step"+i);
-                        nodeMarker.setSnippet(node.mInstructions);
-                        nodeMarker.setSubDescription(Road.getLengthDurationText(MainActivity.this, node.mLength, node.mDuration));
-                        map.getOverlays().add(nodeMarker);
+            }
 
+            @Override
+            public void onProviderEnabled(String provider) {
+
+            }
+
+            @Override
+            public void onProviderDisabled(String provider) {
+
+            }
+        };
 
 
-                    }
+        final LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        getLocation.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
 
-                  map.getOverlays().add(roadOverlay);
-                } catch (Exception e) {
-                    e.printStackTrace();
+                if ((ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) && (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED)) {
+                    //
+                    //    ActivityCompat#requestPermissions
+                    // here to request the missing permissions, and then overriding
+                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                    //                                          int[] grantResults)
+                    // to handle the case where the user grants the permission. See the documentation
+                    // for ActivityCompat#requestPermissions for more details.
+                    return;
                 }
+                locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
+
             }
         });
 
-        thread.start();
 
 
 
 
-        map.invalidate();
+
+
+    map.invalidate();
 
     }
 
@@ -169,5 +188,90 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+    @Override
+    public boolean singleTapConfirmedHelper(GeoPoint p) {
 
+        listItems = getResources().getStringArray(R.array.helps);
+
+        /*
+        * Add a dialog when there is tap to add the marker
+        * In the dialog put fields like releif and others
+        *
+        *
+        * */
+//        Dialog dialog = new Dialog(MainActivity.this);
+//        dialog.setTitle(R.string.dialog_top);
+//        dialog.setContentView(R.layout.dialog);
+
+        AlertDialog.Builder mBuilder = new AlertDialog.Builder(MainActivity.this);
+        mBuilder.setTitle(R.string.dialog_top);
+
+
+        mBuilder.setMultiChoiceItems(listItems, checkedItems, new DialogInterface.OnMultiChoiceClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int position, boolean isChecked) {
+                if(isChecked)
+                {
+                        mUserItems.add(position);
+
+                }
+                mUserItems.remove((Integer.valueOf(position)));
+            }
+        });
+        mBuilder.setCancelable(false);
+        mBuilder.setPositiveButton(R.string.add, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String item = "";
+                for (int i=0;i<mUserItems.size();i++){
+                    item = item + listItems[mUserItems.get(i)];
+                    if(i!=mUserItems.size()-1){
+                        item = item + ", ";
+                    }
+                }
+                Log.d("CHECKED DATA",item);
+            }
+        });
+
+        mBuilder.setNegativeButton(R.string.not_safe, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+            Marker m = new Marker(map);
+            GeoPoint g = new GeoPoint(p.getLatitude(),p.getLongitude());
+            m.setPosition(g);
+            map.getOverlays().add(m);
+
+             mBuilder.create().show();
+             map.invalidate();
+
+        InfoWindow.closeAllInfoWindowsOn(map);
+        Toast.makeText(this,"Tapped",Toast.LENGTH_SHORT).show();
+        return false;
+    }
+
+    @Override
+    public boolean longPressHelper(GeoPoint p) {
+
+       GroundOverlay groundOverlay = new GroundOverlay();
+       groundOverlay.setPosition(p);
+       groundOverlay.setImage(getResources().getDrawable(R.drawable.person).mutate());
+       groundOverlay.setDimensions(200.0f);
+       map.getOverlays().add(groundOverlay);
+
+//        Polygon circle = new Polygon(map);
+//        circle.setPoints(Polygon.pointsAsCircle(p,100.0));
+//        circle.setFillColor(0x12121212);
+//        circle.setStrokeColor(Color.RED);
+//        circle.setStrokeWidth(2);
+//        circle.setInfoWindow(new BasicInfoWindow(org.osmdroid.bonuspack.R.layout.bonuspack_bubble,map));
+//        circle.setTitle("Centered on " + p.getLatitude()+" , "+ p.getLongitude());
+//        map.getOverlays().add(circle);
+        map.invalidate();
+        return false;
+    }
 }
+
+
