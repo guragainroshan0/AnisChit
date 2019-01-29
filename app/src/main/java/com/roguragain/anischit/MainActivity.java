@@ -72,7 +72,7 @@ public class MainActivity extends AppCompatActivity implements MapEventsReceiver
 
         map = (MapView) findViewById(R.id.map);
         map.setTileSource(TileSourceFactory.MAPNIK);
-        map.setBuiltInZoomControls(true);
+        map.setBuiltInZoomControls(false);
         map.setMultiTouchControls(true);
         final IMapController mapController = map.getController();
         mapController.setZoom(15.5);
@@ -189,7 +189,7 @@ public class MainActivity extends AppCompatActivity implements MapEventsReceiver
 
 
     @Override
-    public boolean singleTapConfirmedHelper(GeoPoint p) {
+    public boolean longPressHelper(GeoPoint p) {
 
         listItems = getResources().getStringArray(R.array.helps);
 
@@ -228,12 +228,20 @@ public class MainActivity extends AppCompatActivity implements MapEventsReceiver
                     if(i!=mUserItems.size()-1){
                         item = item + ", ";
                     }
+
+                    /*
+                    * Add code for correct icon on pressed
+                    *
+                    * */
                 }
+
+                //euta line xaina
+
                 Log.d("CHECKED DATA",item);
             }
         });
 
-        mBuilder.setNegativeButton(R.string.not_safe, new DialogInterface.OnClickListener() {
+        mBuilder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 dialog.dismiss();
@@ -253,7 +261,7 @@ public class MainActivity extends AppCompatActivity implements MapEventsReceiver
     }
 
     @Override
-    public boolean longPressHelper(GeoPoint p) {
+    public boolean singleTapConfirmedHelper(GeoPoint p) {
 
        GroundOverlay groundOverlay = new GroundOverlay();
        groundOverlay.setPosition(p);

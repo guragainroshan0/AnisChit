@@ -7,6 +7,7 @@
     <string name="dialog_sanitation">Sanitaion</string>
     <string name="dialog_donation">Donation</string>
     <string name="dialog_bloodbank">Blood Bank</string>
+    <string name="cancel">Cancel</string>
     <array name="helps">
         <item>Sanitation</item>
         <item>Blood Bank</item>
