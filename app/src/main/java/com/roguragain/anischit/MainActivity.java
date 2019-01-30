@@ -4,10 +4,12 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
+import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -16,7 +18,9 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.telephony.AccessNetworkConstants;
+import android.telephony.SmsManager;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.Toast;
@@ -32,17 +36,69 @@ import org.osmdroid.views.MapController;
 import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.MapEventsOverlay;
 import org.osmdroid.views.overlay.Marker;
+import org.osmdroid.views.overlay.TilesOverlay;
 import org.osmdroid.views.overlay.infowindow.InfoWindow;
 
 import java.util.ArrayList;
 
-public class MainActivity extends AppCompatActivity implements MapEventsReceiver {
+public class MainActivity extends AppCompatActivity implements MapEventsReceiver,LocationListener {
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+            event.startTracking();
+            //Log.d("CLICKED", "HAITTT");
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
+    }
+
+    @Override
+    public boolean onKeyLongPress(int keyCode, KeyEvent event) {
+
+        if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+            Log.d("ROSHAN CLICKED", String.valueOf(keyCode));
+
+            String smsMessage = null;
+            getLocation();
+
+            while (currentLocation==null)
+            {
+                getLocation();
+            }
+            if (currentLocation != null) {
+                smsMessage = "LATITUDe="+String.valueOf(currentLocation.getLongitude()) + "SENT FROM APP" + "LONGITUDE="+String.valueOf(currentLocation.getLatitude());
+                String scAddress = null;
+                //set pending intent to broadcast
+
+                PendingIntent sentIntent = null,deliveryIntent = null;
+
+                SmsManager smsManager = SmsManager.getDefault();
+                smsManager.sendTextMessage("9803103252",scAddress, smsMessage, sentIntent, deliveryIntent);
+                Toast.makeText(MainActivity.this,"Message Sent", Toast.LENGTH_LONG).show();
+            } else {
+                getLocation();
+            }
+
+
+            return true;
+
+            }
+           // Toast.makeText(MainActivity.this, "CLICKED", Toast.LENGTH_LONG).show();
+
+
+
+
+        return super.onKeyLongPress(keyCode, event);
+    }
 
     MapView map;
     ImageView getLocation;
     String[] listItems;
     boolean[] checkedItems;
     ArrayList<Integer> mUserItems = new ArrayList<>();
+    Location currentLocation;
+    LocationManager locationManager;
+    LocationListener locationListener;
 
     @SuppressLint("ServiceCast")
     @Override
@@ -77,14 +133,14 @@ public class MainActivity extends AppCompatActivity implements MapEventsReceiver
         final IMapController mapController = map.getController();
         mapController.setZoom(15.5);
 
-        MapEventsOverlay mapEventsOverlay = new MapEventsOverlay(this,this);
-        map.getOverlays().add(0,mapEventsOverlay);
+        MapEventsOverlay mapEventsOverlay = new MapEventsOverlay(this, this);
+        map.getOverlays().add(0, mapEventsOverlay);
 
 
         Marker marker = new Marker(map);
-        GeoPoint geoPoint = new GeoPoint(27.7172,85.3240);
+        GeoPoint geoPoint = new GeoPoint(27.7172, 85.3240);
         marker.setPosition(geoPoint);
-        marker.setAnchor(Marker.ANCHOR_CENTER,Marker.ANCHOR_BOTTOM);
+        marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
         marker.setImage(logo);
         map.getOverlays().add(marker);
         mapController.setCenter(geoPoint);
@@ -92,54 +148,6 @@ public class MainActivity extends AppCompatActivity implements MapEventsReceiver
 
 
 
-        final LocationListener locationListener = new LocationListener() {
-            @Override
-            public void onLocationChanged(Location location) {
-                if (items.size() > 0) {
-                    map.getOverlays().remove(items.get(0));
-                }
-                Marker marker = new Marker(map);
-       /*
-       *
-       * Location of victim
-       * Add button pressed listener
-       * Add send data to server
-       *
-       * */
-                //Send location to server
-                // Location of the victim
-                GeoPoint geoPoint = new GeoPoint(location.getLatitude(), location.getLongitude());
-                marker.setImage(logo);
-                items.add(0, marker);
-                marker.setPosition(geoPoint);
-                mapController.setCenter(geoPoint);
-                mapController.setZoom(16.5);
-                mapController.animateTo(geoPoint);
-                mapController.stopAnimation(false);
-                map.getOverlays().add(marker);
-                map.invalidate();
-
-
-            }
-
-            @Override
-            public void onStatusChanged(String provider, int status, Bundle extras) {
-
-            }
-
-            @Override
-            public void onProviderEnabled(String provider) {
-
-            }
-
-            @Override
-            public void onProviderDisabled(String provider) {
-
-            }
-        };
-
-
-        final LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
         getLocation.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -154,22 +162,46 @@ public class MainActivity extends AppCompatActivity implements MapEventsReceiver
                     // for ActivityCompat#requestPermissions for more details.
                     return;
                 }
-                locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
+
+                /*
+                 *
+                 * Location of victim
+                 * Add button pressed listener
+                 * Add send data to server
+                 *
+                 * */
+                //Send location to server
+                // Location of the victim
+
+                getLocation();
+
+                if(currentLocation!=null) {
+                    GeoPoint geoPoint = new GeoPoint(currentLocation.getLatitude(), currentLocation.getLongitude());
+                    Marker marker = new Marker(map);
+                    marker.setImage(logo);
+                    marker.setTitle(currentLocation.getLatitude()+"sadfasdf"+currentLocation.getLongitude());
+                    items.add(0, marker);
+                    Log.d("got location","YES");
+                    marker.setPosition(geoPoint);
+                    mapController.setCenter(geoPoint);
+                    mapController.setZoom(16.5);
+                    mapController.animateTo(geoPoint);
+                    mapController.stopAnimation(false);
+                    map.getOverlays().add(marker);
+                    map.invalidate();
+
+                }
+
 
             }
         });
 
 
-
-
-
-
-
-    map.invalidate();
+        map.invalidate();
 
     }
 
-    public void onResume(){
+    public void onResume() {
         super.onResume();
         //this will refresh the osmdroid configuration on resuming.
         //if you make changes to the configuration, use
@@ -178,7 +210,7 @@ public class MainActivity extends AppCompatActivity implements MapEventsReceiver
         map.onResume(); //needed for compass, my location overlays, v6.0.0 and up
     }
 
-    public void onPause(){
+    public void onPause() {
         super.onPause();
         //this will refresh the osmdroid configuration on resuming.
         //if you make changes to the configuration, use
@@ -194,11 +226,11 @@ public class MainActivity extends AppCompatActivity implements MapEventsReceiver
         listItems = getResources().getStringArray(R.array.helps);
 
         /*
-        * Add a dialog when there is tap to add the marker
-        * In the dialog put fields like releif and others
-        *
-        *
-        * */
+         * Add a dialog when there is tap to add the marker
+         * In the dialog put fields like releif and others
+         *
+         *
+         * */
 //        Dialog dialog = new Dialog(MainActivity.this);
 //        dialog.setTitle(R.string.dialog_top);
 //        dialog.setContentView(R.layout.dialog);
@@ -210,9 +242,8 @@ public class MainActivity extends AppCompatActivity implements MapEventsReceiver
         mBuilder.setMultiChoiceItems(listItems, checkedItems, new DialogInterface.OnMultiChoiceClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int position, boolean isChecked) {
-                if(isChecked)
-                {
-                        mUserItems.add(position);
+                if (isChecked) {
+                    mUserItems.add(position);
 
                 }
                 mUserItems.remove((Integer.valueOf(position)));
@@ -223,21 +254,21 @@ public class MainActivity extends AppCompatActivity implements MapEventsReceiver
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 String item = "";
-                for (int i=0;i<mUserItems.size();i++){
+                for (int i = 0; i < mUserItems.size(); i++) {
                     item = item + listItems[mUserItems.get(i)];
-                    if(i!=mUserItems.size()-1){
+                    if (i != mUserItems.size() - 1) {
                         item = item + ", ";
                     }
 
                     /*
-                    * Add code for correct icon on pressed
-                    *
-                    * */
+                     * Add code for correct icon on pressed
+                     *
+                     * */
                 }
 
                 //euta line xaina
 
-                Log.d("CHECKED DATA",item);
+                Log.d("CHECKED DATA", item);
             }
         });
 
@@ -247,27 +278,27 @@ public class MainActivity extends AppCompatActivity implements MapEventsReceiver
                 dialog.dismiss();
             }
         });
-            Marker m = new Marker(map);
-            GeoPoint g = new GeoPoint(p.getLatitude(),p.getLongitude());
-            m.setPosition(g);
-            map.getOverlays().add(m);
+        Marker m = new Marker(map);
+        GeoPoint g = new GeoPoint(p.getLatitude(), p.getLongitude());
+        m.setPosition(g);
+        map.getOverlays().add(m);
 
-             mBuilder.create().show();
-             map.invalidate();
+        mBuilder.create().show();
+        map.invalidate();
 
         InfoWindow.closeAllInfoWindowsOn(map);
-        Toast.makeText(this,"Tapped",Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Tapped", Toast.LENGTH_SHORT).show();
         return false;
     }
 
     @Override
     public boolean singleTapConfirmedHelper(GeoPoint p) {
 
-       GroundOverlay groundOverlay = new GroundOverlay();
-       groundOverlay.setPosition(p);
-       groundOverlay.setImage(getResources().getDrawable(R.drawable.person).mutate());
-       groundOverlay.setDimensions(200.0f);
-       map.getOverlays().add(groundOverlay);
+        GroundOverlay groundOverlay = new GroundOverlay();
+        groundOverlay.setPosition(p);
+        groundOverlay.setImage(getResources().getDrawable(R.drawable.person).mutate());
+        groundOverlay.setDimensions(200.0f);
+        map.getOverlays().add(groundOverlay);
 
 //        Polygon circle = new Polygon(map);
 //        circle.setPoints(Polygon.pointsAsCircle(p,100.0));
@@ -279,6 +310,77 @@ public class MainActivity extends AppCompatActivity implements MapEventsReceiver
 //        map.getOverlays().add(circle);
         map.invalidate();
         return false;
+
+    }
+
+    public void getLocation() {
+
+
+        locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        Criteria criteria = new Criteria();
+        criteria.setPowerRequirement(Criteria.POWER_LOW);
+        criteria.setAccuracy(Criteria.ACCURACY_FINE);
+        String bestProvider = locationManager.getBestProvider(criteria, false);
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return ;
+        }
+
+        //Location location = locationManager.getLastKnownLocation(bestProvider);
+
+        locationManager.requestLocationUpdates(bestProvider,0,0, MainActivity.this);
+
+            //locationManager.requestLocationUpdates(bestProvider,0,0, MainActivity.this);
+
+
+        if(currentLocation!=null){
+
+            Toast.makeText(MainActivity.this,"got location", Toast.LENGTH_LONG).show();
+
+        }
+        else {
+            locationManager.requestLocationUpdates(bestProvider,0,0, MainActivity.this);
+        }
+
+
+
+       // locationManager.requestLocationUpdates(bestProvider, 0, 0, locationListener);
+
+
+    }
+
+
+    @Override
+    public void onLocationChanged(Location location) {
+            currentLocation = location;
+    }
+
+    @Override
+    public void onStatusChanged(String provider, int status, Bundle extras) {
+
+    }
+
+    @Override
+    public void onProviderEnabled(String provider) {
+
+    }
+
+    @Override
+    public void onProviderDisabled(String provider) {
+
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        //locationManager.removeUpdates(locationListener);
     }
 }
 
