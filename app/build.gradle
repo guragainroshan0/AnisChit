@@ -20,7 +20,9 @@ android {
 
 dependencies {
 
-
+    compile ('com.google.android.gms:play-services:9.0.2'){
+        exclude module: 'support-v4'
+    }
     implementation('com.github.MKergall:osmbonuspack:6.5.2'){
         exclude group: 'com.android.support'
         exclude module: 'appcompat-v7'
